@@ -1,78 +1,50 @@
-# Network configuration
-# The 'mcp' network allows containers to communicate internally
-networks:
-  mcp:
-    driver: bridge
-
-# Persistent volumes
-volumes:
-  mcpjungle-data:
-    # PostgreSQL data for MCPJungle
-  mcpjungle-uploads:
-    # MCPJungle file uploads
+# MCPJungle Docker Compose configuration
+# Self-hosted MCP Gateway and Registry for HomeLab
 
 services:
-  # PostgreSQL Database for MCPJungle
-  # Stores server registrations, tool metadata, and access control
-  postgres:
+  db:
     image: postgres:17-alpine
     container_name: mcpjungle-db
-    restart: unless-stopped
-    
     environment:
       POSTGRES_USER: mcpjungle
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mcpjungle_default_password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mcpjungle}
       POSTGRES_DB: mcpjungle
-    
     volumes:
-      - mcpjungle-data:/var/lib/postgresql/data
-    
-    networks: [mcp]
-    
+      - db_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U mcpjungle"]
       interval: 10s
       timeout: 5s
       retries: 5
-
-  # MCPJungle - MCP Gateway and Registry
-  # Self-hosted gateway for managing and accessing MCP servers
-  # Provides web UI, CLI, and unified MCP endpoint
-  mcpjungle:
-    image: mcpjungle/mcpjungle:latest-stdio
-    container_name: mcpjungle
     restart: unless-stopped
-    
-    ports:
-      - "8080:8080"  # Web UI and MCP gateway endpoint
-    
+    networks:
+      - mcp
+
+  mcpjungle:
+    image: mcpjungle/mcpjungle:${MCPJUNGLE_IMAGE_TAG:-latest-stdio}
+    container_name: mcpjungle
     environment:
-      # Database connection
-      DATABASE_URL: postgres://mcpjungle:${POSTGRES_PASSWORD:-mcpjungle_default_password}@postgres:5432/mcpjungle
-      
-      # Server mode (development = no auth, enterprise = auth + access control)
+      DATABASE_URL: postgres://mcpjungle:${POSTGRES_PASSWORD:-mcpjungle}@db:5432/mcpjungle
       SERVER_MODE: ${SERVER_MODE:-development}
-      
-      # Optional: OpenTelemetry metrics
       OTEL_ENABLED: ${OTEL_ENABLED:-false}
       OTEL_RESOURCE_ATTRIBUTES: ${OTEL_RESOURCE_ATTRIBUTES:-}
-    
+    ports:
+      - "${HOST_PORT:-8080}:8080"
     volumes:
-      # Docker socket access for managing STDIO MCP servers
       - /var/run/docker.sock:/var/run/docker.sock
-      # File uploads storage
-      - mcpjungle-uploads:/uploads
-      # Mount workspace for filesystem MCP server
       - /srv/mcp/workspace:/host:rw
-    
-    networks: [mcp]
-    
+      - uploads:/uploads
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
-    
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    restart: unless-stopped
+    networks:
+      - mcp
+
+volumes:
+  db_data:
+  uploads:
+
+networks:
+  mcp:
+    driver: bridge

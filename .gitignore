@@ -1,7 +1,11 @@
 # Docker volumes and data
-mcp-gateway-data/
-tailscale-*/
+mcpjungle-data/
+mcpjungle-uploads/
+postgres-data/
 workspace/
+
+# MCPJungle CLI configuration
+.mcpjungle.conf
 
 # Environment files - NEVER commit auth keys!
 .env
@@ -9,9 +13,9 @@ workspace/
 .env.*.local
 *.env
 
-# Tailscale state directories
-tailscale/state/
-tailscale/*.state
+# MCP Server registration configs (may contain tokens)
+*-server-config.json
+*-mcp-config.json
 
 # Logs
 *.log
