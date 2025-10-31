@@ -126,7 +126,7 @@ In this setup:
 
 ---
 
-## 🚀 Quick Start (with Docker MCP CLI)
+## 🚀 Quick Start (Komodo Automatic Deployment)
 
 ### 1️⃣ Clone This Repository
 ```bash
@@ -134,46 +134,65 @@ git clone https://github.com/mdlmarkham/HL_DockerMCPGateway.git
 cd HL_DockerMCPGateway
 ```
 
-### 2️⃣ Deploy MCP Server Containers via Komodo
+### 2️⃣ Configure MCP Servers (Optional)
 
-Upload this stack to Komodo or use the compose file directly:
+Edit `mcp-servers.json` to add more servers beyond markitdown:
 
-```bash
-# Start the MCP server container definitions (they won't run yet)
-docker compose up -d --no-start
+```json
+{
+  "mcpServers": {
+    "markitdown": {
+      "command": "docker",
+      "args": [
+        "run", "--rm", "-i",
+        "--network=hl_dockermcpgateway_mcp",
+        "--name=mcp-markitdown",
+        "-v", "/srv/mcp/workspace:/workspace:ro",
+        "--security-opt=no-new-privileges:true",
+        "--read-only",
+        "--tmpfs=/tmp",
+        "mcp/markitdown:latest"
+      ]
+    }
+  }
+}
 ```
 
-### 3️⃣ Install Docker MCP Gateway (on Komodo host)
+See [docs/GATEWAY_CONFIG.md](docs/GATEWAY_CONFIG.md) for more server examples.
 
-The gateway comes with Docker Desktop, but for servers use the binary:
+### 3️⃣ Configure Server Credentials (Optional)
+
+If using Proxmox, Tailscale, or other authenticated servers:
 
 ```bash
-# Download the latest release
-wget https://github.com/docker/mcp-gateway/releases/latest/download/docker-mcp-linux-amd64 -O /usr/local/bin/docker-mcp
-chmod +x /usr/local/bin/docker-mcp
-
-# Or if Docker Desktop is installed:
-# docker mcp --help
+cp .env.example .env
+nano .env
+# Add your credentials
 ```
 
-### 4️⃣ Enable MCP Servers
+### 4️⃣ Deploy the Stack via Komodo
+
+Upload to Komodo or deploy directly:
 
 ```bash
-# Enable markitdown server (no credentials needed)
-docker mcp server enable markitdown
+# Deploy the entire stack
+docker compose up -d
 
-# List enabled servers
-docker mcp server list
+# The gateway-runner service will start automatically
+# It will spawn MCP server containers on demand
 ```
 
-### 5️⃣ Start the Gateway
+### 5️⃣ Verify the Gateway is Running
 
 ```bash
-# Run the gateway in the foreground
-docker mcp gateway run
+# Check gateway logs
+docker logs mcp-gateway
 
-# Or run as a background service
-docker mcp gateway run --daemon
+# Check if socket was created
+ls -la /var/run/mcp-gateway.sock
+
+# Test the gateway
+docker logs mcp-gateway | grep -i "listening"
 ```
 
 ### 6️⃣ Connect Your MCP Client
@@ -185,27 +204,27 @@ Configure your MCP client (Claude Desktop, Cursor, etc.) to connect to the gatew
   "mcpServers": {
     "docker-gateway": {
       "command": "docker",
-      "args": ["mcp", "gateway", "connect"],
+      "args": ["exec", "-i", "mcp-gateway", "mcp-gateway", "connect"],
       "transport": "stdio"
     }
   }
 }
 ```
 
-### 7️⃣ Enable Optional MCP Servers
+Or if the gateway socket is accessible from your client machine, connect directly to `/var/run/mcp-gateway.sock`.
+
+### 7️⃣ Add More Servers (Optional)
+
+Edit `mcp-servers.json` and restart the gateway:
 
 ```bash
-# Configure credentials in .env first
-cp .env.example .env
-nano .env
+# Edit configuration
+nano mcp-servers.json
 
-# Enable Proxmox MCP server
-docker compose --profile proxmox up -d --no-start
-docker mcp server enable proxmox
+# Restart gateway to pick up changes
+docker compose restart mcp-gateway
 
-# Enable Tailscale MCP server
-docker compose --profile tailscale-mcp up -d --no-start
-docker mcp server enable tailscale
+# Gateway will now manage the new servers
 ```
 
 ### 6️⃣ Configure Your MCP Client

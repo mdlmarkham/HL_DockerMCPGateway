@@ -13,27 +13,29 @@ volumes:
 
 services:
   # MCP Gateway - CLI tool that manages MCP server containers
-  # NOTE: The gateway is NOT a long-running HTTP service on port 3000
-  # It's a CLI process that spawns server containers on demand via Docker socket
-  # Use 'docker mcp gateway run' on the host, or uncomment this service:
-  #
-  # gateway-runner:
-  #   image: ghcr.io/docker/mcp-gateway:master
-  #   container_name: mcp-gateway
-  #   network_mode: host
-  #   volumes:
-  #     - /var/run/docker.sock:/var/run/docker.sock
-  #     - ./mcp-servers.json:/etc/mcp-servers.json:ro
-  #     - mcp-gateway-data:/var/lib/mcp-gateway
-  #   command: >
-  #     mcp-gateway server
-  #       --config /etc/mcp-servers.json
-  #       --socket /var/run/mcp-gateway.sock
-  #   profiles: ["gateway"]
-  #
-  # RECOMMENDED: Use 'docker mcp' CLI on Komodo host instead:
-  #   docker mcp server enable markitdown
-  #   docker mcp gateway run
+  # Runs as a containerized service that spawns server containers on demand
+  gateway-runner:
+    image: ghcr.io/docker/mcp-gateway:master
+    container_name: mcp-gateway
+    restart: unless-stopped
+    network_mode: host
+    
+    volumes:
+      # Gateway needs write access to Docker socket to spawn server containers
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Configuration file listing which servers to manage
+      - ./mcp-servers.json:/etc/mcp-servers.json:ro
+      # Persistent state
+      - mcp-gateway-data:/var/lib/mcp-gateway
+    
+    command: >
+      mcp-gateway server
+        --config /etc/mcp-servers.json
+        --socket /var/run/mcp-gateway.sock
+    
+    # Optional: Uncomment to wait for Docker to be ready
+    # depends_on:
+    #   - markitdown
 
   # Markitdown MCP Server - Converts documents to Markdown
   # Started on-demand by the gateway via Docker socket
