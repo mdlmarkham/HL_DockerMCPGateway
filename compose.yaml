@@ -12,51 +12,37 @@ volumes:
     # Stores gateway state, configuration, and discovered servers
 
 services:
-  # MCP Gateway - Main entry point for MCP clients
-  # Exposed via tsdproxy running on the host
-  mcp-gateway:
-    image: docker/mcp-gateway:latest
-    container_name: mcp-gateway
-    restart: unless-stopped
-    
-    # Gateway configuration
-    environment:
-      # Optional: Configure the HTTP server port (default: 3000)
-      - PORT=${MCP_GATEWAY_PORT:-3000}
-      # Path to MCP configuration file
-      - MCP_CONFIG_PATH=/app/mcp-config.json
-    
-    # Expose port for tsdproxy to proxy
-    ports:
-      - "${MCP_GATEWAY_PORT:-3000}:3000"
-    
-    # Security hardening
-    security_opt:
-      - no-new-privileges:true
-    read_only: false        # Gateway needs write access for state management
-    tmpfs:
-      - /tmp
-    
-    # Persistent storage and workspace access
-    volumes:
-      - mcp-gateway-data:/var/lib/mcp-gateway
-      # Docker socket for MCP server discovery
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      # MCP Gateway configuration (optional - for custom server definitions)
-      - ./mcp-config.json:/app/mcp-config.json:ro
-      # Shared read-only workspace for MCP tools
-      # Update this path to match your environment
-      - /srv/mcp/workspace:/workspace:ro
-    
-    networks: [mcp]
+  # MCP Gateway - CLI tool that manages MCP server containers
+  # NOTE: The gateway is NOT a long-running HTTP service on port 3000
+  # It's a CLI process that spawns server containers on demand via Docker socket
+  # Use 'docker mcp gateway run' on the host, or uncomment this service:
+  #
+  # gateway-runner:
+  #   image: ghcr.io/docker/mcp-gateway:master
+  #   container_name: mcp-gateway
+  #   network_mode: host
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #     - ./mcp-servers.json:/etc/mcp-servers.json:ro
+  #     - mcp-gateway-data:/var/lib/mcp-gateway
+  #   command: >
+  #     mcp-gateway server
+  #       --config /etc/mcp-servers.json
+  #       --socket /var/run/mcp-gateway.sock
+  #   profiles: ["gateway"]
+  #
+  # RECOMMENDED: Use 'docker mcp' CLI on Komodo host instead:
+  #   docker mcp server enable markitdown
+  #   docker mcp gateway run
 
   # Markitdown MCP Server - Converts documents to Markdown
+  # Started on-demand by the gateway via Docker socket
   markitdown:
     image: mcp/markitdown:latest
     container_name: mcp-markitdown
-    restart: "no"           # Started on-demand by gateway
-    stdin_open: true        # Keep stdin open for MCP protocol
-    tty: true              # Allocate pseudo-TTY
+    restart: "no"           # Gateway starts this on demand
+    stdin_open: true        # Required for MCP stdio protocol
+    tty: true              # Required for MCP stdio protocol
     
     # Security hardening
     security_opt:

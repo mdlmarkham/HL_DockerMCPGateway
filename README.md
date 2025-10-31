@@ -28,53 +28,47 @@ It aggregates multiple MCP servers (tools) and exposes them to clients through a
 ### Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│              Your Tailscale Network                  │
-│                                                      │
-│  ┌──────────────┐      ┌──────────────────────┐    │
-│  │ MCP Clients  │─────▶│ mcp-gateway          │    │
-│  │ (Claude,etc) │ HTTPS│ .your-tailnet.ts.net │    │
-│  └──────────────┘      └──────────┬───────────┘    │
-│                                    │                │
-│                         ┌──────────▼───────────┐    │
-│                         │     tsdproxy         │    │
-│                         │  (Host Process)      │    │
-│                         └──────────┬───────────┘    │
-│                                    │                │
-│                         ┌──────────▼───────────┐    │
-│                         │   MCP Gateway        │    │
-│                         │   Container :3000    │    │
-│                         └──────────┬───────────┘    │
-│                                    │                │
-│                         ┌──────────▼───────────┐    │
-│                         │   MCP Servers        │    │
-│                         │   + markitdown       │    │
-│                         │   + proxmox-mcp      │    │
-│                         │   + tailscale-mcp    │    │
-│                         └──────────────────────┘    │
-│                                                      │
-└─────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│              Your Tailscale Network                          │
+│                                                              │
+│  ┌──────────────┐      ┌────────────────────────────┐      │
+│  │ MCP Clients  │─────▶│ Docker MCP Gateway (CLI)   │      │
+│  │ (Claude,etc) │ sock │ /var/run/mcp-gateway.sock  │      │
+│  └──────────────┘      └──────────┬─────────────────┘      │
+│                                    │                        │
+│                         ┌──────────▼───────────┐            │
+│                         │   Docker Socket      │            │
+│                         │   Spawns servers:    │            │
+│                         └──────────┬───────────┘            │
+│                                    │                        │
+│                         ┌──────────▼───────────┐            │
+│                         │   MCP Servers        │            │
+│                         │   + markitdown       │            │
+│                         │   + proxmox-mcp      │            │
+│                         │   + tailscale-mcp    │            │
+│                         └──────────────────────┘            │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
                  Managed by Komodo
 ```
 
 In this setup:
 
-- **tsdproxy (Host Process)**  
-  Provides secure networking and automatic HTTPS via Tailscale.  
-  Uses your host's existing Tailscale connection.
+- **Docker MCP Gateway (CLI Tool)**  
+  NOT a long-running container on port 3000. It's a CLI process that:
+  - Reads `mcp-servers.json` to know which servers to manage
+  - Spawns MCP server containers on demand via Docker socket
+  - Listens on a UNIX socket (default: `/var/run/mcp-gateway.sock`)
+  - MCP clients connect to this socket, not HTTP
 
-- **Gateway Container (`mcp-gateway`)**  
-  Hosts the MCP interface and manages tool discovery, configuration, and routing.  
-  Exposed on port 3000 for tsdproxy to proxy.
-
-- **MCP Servers**  
+- **MCP Server Containers**  
   - **Markitdown**: Converts files (PDF, DOCX, HTML, etc.) into Markdown
   - **Proxmox MCP**: Manages VMs, containers, and nodes in your hypervisor
   - **Tailscale MCP**: Automates your Tailscale network configuration
   - Many more available via profiles
+  - Started on-demand by the gateway, not manually
 
-- **Komodo** orchestrates containers as a managed stack.  
-- **tsdproxy** makes the gateway accessible with HTTPS on your tailnet.
+- **Komodo** orchestrates the server container definitions.
 
 ---
 
@@ -132,7 +126,7 @@ In this setup:
 
 ---
 
-## 🚀 Quick Start (with tsdproxy)
+## 🚀 Quick Start (with Docker MCP CLI)
 
 ### 1️⃣ Clone This Repository
 ```bash
@@ -140,82 +134,78 @@ git clone https://github.com/mdlmarkham/HL_DockerMCPGateway.git
 cd HL_DockerMCPGateway
 ```
 
-### 2️⃣ Configure Environment Variables
+### 2️⃣ Deploy MCP Server Containers via Komodo
+
+Upload this stack to Komodo or use the compose file directly:
 
 ```bash
-# Copy the example environment file
-cp .env.example .env
-
-# Edit .env (optional - defaults work for most setups)
-nano .env
+# Start the MCP server container definitions (they won't run yet)
+docker compose up -d --no-start
 ```
 
-Optional variables:
-- `MCP_GATEWAY_PORT`: Gateway port (default: 3000)
-- `MCP_WORKSPACE_PATH`: Path to your workspace directory
+### 3️⃣ Install Docker MCP Gateway (on Komodo host)
 
-### 3️⃣ Configure tsdproxy
-
-Add the MCP Gateway backend to your tsdproxy configuration:
+The gateway comes with Docker Desktop, but for servers use the binary:
 
 ```bash
-# Example for tsdproxy systemd service
-sudo tee -a /etc/tsdproxy/config.yaml << EOF
-backends:
-  mcp-gateway:
-    url: http://localhost:3000
-    hostname: mcp-gateway.your-tailnet.ts.net
-EOF
+# Download the latest release
+wget https://github.com/docker/mcp-gateway/releases/latest/download/docker-mcp-linux-amd64 -O /usr/local/bin/docker-mcp
+chmod +x /usr/local/bin/docker-mcp
 
-sudo systemctl restart tsdproxy
+# Or if Docker Desktop is installed:
+# docker mcp --help
 ```
 
-**See [tsdproxy Integration Guide](docs/TSDPROXY_SETUP.md) for detailed instructions.**
-
-### 4️⃣ Create Workspace Directory (Optional)
+### 4️⃣ Enable MCP Servers
 
 ```bash
-# Create the workspace directory
-sudo mkdir -p /srv/mcp/workspace
-sudo chmod 755 /srv/mcp/workspace
+# Enable markitdown server (no credentials needed)
+docker mcp server enable markitdown
+
+# List enabled servers
+docker mcp server list
 ```
 
-Or update `compose.yaml` to use your preferred path.
-
-### 5️⃣ Launch the Stack
+### 5️⃣ Start the Gateway
 
 ```bash
-# Start the gateway and base services
-docker compose up -d
+# Run the gateway in the foreground
+docker mcp gateway run
 
-# Check status
-docker compose ps
-
-# View logs
-docker compose logs -f mcp-gateway
+# Or run as a background service
+docker mcp gateway run --daemon
 ```
 
-### 6️⃣ Verify the Setup
+### 6️⃣ Connect Your MCP Client
 
-```bash
-# Test locally
-curl http://localhost:3000/health
+Configure your MCP client (Claude Desktop, Cursor, etc.) to connect to the gateway socket:
 
-# Test via Tailscale
-curl https://mcp-gateway.your-tailnet.ts.net/health
+```json
+{
+  "mcpServers": {
+    "docker-gateway": {
+      "command": "docker",
+      "args": ["mcp", "gateway", "connect"],
+      "transport": "stdio"
+    }
+  }
+}
 ```
 
 ### 7️⃣ Enable Optional MCP Servers
 
 ```bash
-# Start Proxmox MCP server (after configuring .env)
-docker compose --profile proxmox up -d
+# Configure credentials in .env first
+cp .env.example .env
+nano .env
 
-# Start Tailscale MCP server (after configuring .env)
-docker compose --profile tailscale-mcp up -d
+# Enable Proxmox MCP server
+docker compose --profile proxmox up -d --no-start
+docker mcp server enable proxmox
 
-# View available MCP tools
-docker compose logs mcp-gateway | grep -i tool
+# Enable Tailscale MCP server
+docker compose --profile tailscale-mcp up -d --no-start
+docker mcp server enable tailscale
 ```
 
 ### 6️⃣ Configure Your MCP Client
