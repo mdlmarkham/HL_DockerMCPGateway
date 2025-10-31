@@ -7,23 +7,26 @@ This document provides a quick overview of the HL_DockerMCPGateway repository st
 Deploy Docker MCP Gateway in a HomeLab environment using:
 - 🐳 **Docker Compose** for containerization
 - 🚀 **Komodo** for orchestration and management
-- 🔒 **Tailscale Services** for secure, zero-trust networking
+- 🔒 **tsdproxy** (recommended) or **Tailscale Services** for secure networking
 
 ## Key Features
 
 ✅ **Automatic HTTPS** - TLS certificates via Tailscale  
 ✅ **MagicDNS Hostnames** - Access via `https://mcp-gateway.your-tailnet.ts.net`  
-✅ **Service Discovery** - Appears in Tailscale admin console  
+✅ **Flexible Deployment** - Use existing tsdproxy or dedicated sidecar  
 ✅ **Zero Trust Security** - No public ports, ACL-based access control  
 ✅ **Easy Deployment** - Docker Compose + Komodo = simple setup  
-✅ **Production Ready** - Security hardening, monitoring, troubleshooting docs
+✅ **Production Ready** - Security hardening, monitoring, troubleshooting docs  
+✅ **Rich MCP Server Library** - Proxmox, Tailscale, Atlassian, and more
 
 ## Quick Links
 
 | Document | Purpose |
 |----------|---------|
 | [README.md](README.md) | Main documentation and quick start |
-| [TAILSCALE_SERVICES.md](docs/TAILSCALE_SERVICES.md) | **START HERE** - Complete Tailscale Services setup |
+| [TSDPROXY_SETUP.md](docs/TSDPROXY_SETUP.md) | **⭐ RECOMMENDED** - tsdproxy integration guide |
+| [TAILSCALE_SERVICES.md](docs/TAILSCALE_SERVICES.md) | Alternative: Tailscale sidecar setup |
+| [ADDING_MCP_SERVERS.md](docs/ADDING_MCP_SERVERS.md) | Add Proxmox, Tailscale, and other MCP servers |
 | [KOMODO_SETUP.md](docs/KOMODO_SETUP.md) | Deploy with Komodo |
 | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Solve common issues |
 | [compose.yaml](compose.yaml) | Docker Compose configuration |
@@ -33,15 +36,16 @@ Deploy Docker MCP Gateway in a HomeLab environment using:
 
 ```
 HL_DockerMCPGateway/
-├── compose.yaml                    # Docker Compose config with Tailscale sidecar
-├── .env.example                    # Environment template with Tailscale vars
+├── compose.yaml                    # Docker Compose config (tsdproxy-ready)
+├── .env.example                    # Environment template
 ├── tailscale/
-│   ├── serve-config.json          # Tailscale Serve configuration
+│   ├── serve-config.json          # Tailscale Serve config (optional)
 │   └── README.md                  # Tailscale config documentation
 ├── docs/
-│   ├── TAILSCALE_SERVICES.md      # ⭐ Comprehensive Tailscale Services guide
+│   ├── TSDPROXY_SETUP.md          # ⭐ RECOMMENDED tsdproxy integration
+│   ├── TAILSCALE_SERVICES.md      # Alternative: Tailscale sidecar guide
+│   ├── ADDING_MCP_SERVERS.md      # MCP server catalog and setup
 │   ├── KOMODO_SETUP.md            # Komodo deployment guide
-│   ├── TAILSCALE_SETUP.md         # Basic Tailscale setup
 │   ├── TROUBLESHOOTING.md         # Common issues and solutions
 │   └── WORKSPACE_SETUP.md         # Workspace configuration
 ├── .github/
