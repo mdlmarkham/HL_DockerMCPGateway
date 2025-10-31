@@ -19,6 +19,9 @@ services:
     restart: unless-stopped
     networks:
       - mcp
+    labels:
+      - "komodo.stack=mcpjungle"
+      - "komodo.service=database"
 
   mcpjungle:
     image: mcpjungle/mcpjungle:${MCPJUNGLE_IMAGE_TAG:-latest-stdio}
@@ -40,6 +43,10 @@ services:
     restart: unless-stopped
     networks:
       - mcp
+    labels:
+      - "komodo.stack=mcpjungle"
+      - "komodo.service=gateway"
+      - "komodo.url=http://localhost:8080"
 
 volumes:
   db_data:

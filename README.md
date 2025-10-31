@@ -2,6 +2,11 @@
 
 Self-hosted MCP Gateway using [MCPJungle](https://github.com/mcpjungle/MCPJungle) for managing Model Context Protocol (MCP) servers in your HomeLab.
 
+## Deployment Options
+
+- **Local Docker Compose**: Quick start below
+- **[Komodo Deployment](KOMODO_DEPLOYMENT.md)**: Centralized HomeLab management (recommended)
+
 ## Quick Start
 
 ```bash
@@ -42,6 +47,7 @@ MCPJungle is a production-ready MCP Gateway providing:
 
 ## Documentation
 
+- **[Komodo Deployment](KOMODO_DEPLOYMENT.md)** - Deploy to Komodo (recommended)
 - **[Quick Start Guide](QUICKSTART.md)** - Detailed setup instructions
 - **[Migration Guide](MIGRATION.md)** - Migrating from Docker MCP Gateway
 - **[MCPJungle Docs](https://github.com/mcpjungle/MCPJungle)** - Official documentation
