@@ -67,6 +67,8 @@ services:
     # Persistent storage and workspace access
     volumes:
       - mcp-gateway-data:/var/lib/mcp-gateway
+      # Docker socket for MCP server discovery
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       # Shared read-only workspace for MCP tools
       # Update this path to match your environment
       - /srv/mcp/workspace:/workspace:ro
