@@ -140,19 +140,40 @@ Access at: `https://mcp-gateway.YOUR-TAILNET.ts.net`
 ## Common Use Cases
 
 ### 1. Claude Desktop Integration
-Configure Claude to use MCP Gateway for enhanced capabilities like document conversion.
+Configure Claude to use MCP Gateway for enhanced capabilities like document conversion, API development, project management, and knowledge retrieval.
 
 ### 2. Cursor/VS Code Integration
-Enable MCP tools in your IDE for AI-assisted development with file processing.
+Enable MCP tools in your IDE for AI-assisted development with file processing, OpenAPI spec validation, Jira/Confluence integration, and real-time library documentation.
 
 ### 3. GitHub Copilot Enhancement
-Extend Copilot with MCP servers for specialized tasks.
+Extend Copilot with MCP servers for specialized tasks like API documentation, task tracking, and code library references.
 
-### 4. HomeLab Document Processing
-Convert PDFs, DOCX, and other formats to Markdown automatically.
+### 4. API Development & Documentation
+Use OpenAPI toolkit to validate specs, generate code snippets, and create cURL commands. Analyze existing schemas with detailed component inspection tools.
 
-### 5. Team Collaboration
-Share MCP tools across your organization via Tailscale ACLs.
+### 5. Project Management & Documentation
+Integrate with Atlassian tools - manage Jira issues, update Confluence pages, track sprints, all through AI assistants.
+
+### 6. Personal Knowledge Management
+Connect to your Obsidian vault for note-taking, search, and content management with AI assistance.
+
+### 7. Research & Information Gathering
+Access Wikipedia for knowledge retrieval, Reddit for community insights, and web browsing for current information.
+
+### 8. HomeLab Document Processing
+Convert PDFs, DOCX, and other formats to Markdown automatically with the Markitdown server.
+
+### 9. Team Collaboration
+Share MCP tools across your organization via Tailscale ACLs for secure, private access.
+
+### 10. Self-Service HomeLab Management
+Use the Komodo MCP server to manage containers, deployments, and stacks within your own Komodo instance - meta-orchestration at its finest!
+
+### 11. HomeLab Hypervisor Management
+Manage Proxmox VE/PVE through AI assistants - monitor nodes, control VMs, check storage, and maintain cluster health conversationally.
+
+### 12. Tailscale Network Automation
+Programmatically manage your Tailscale network - automate device management, update ACLs, monitor network status, and control access through AI-driven conversations.
 
 ## Support and Community
 

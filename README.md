@@ -266,18 +266,119 @@ Now Claude can automatically discover tools (like `markitdown`) via the Gateway.
 
 ## 🧠 Enabling Additional MCP Servers
 
-You can enable more servers through the **MCP Catalog**.
+**See the complete guide:** [docs/ADDING_MCP_SERVERS.md](docs/ADDING_MCP_SERVERS.md)
 
-### Example:
+You have **two options** for adding MCP servers:
+
+### Option 1: Declarative (compose.yaml) - Recommended for Production
+
+Add servers directly to `compose.yaml` for automatic deployment:
+
+```yaml
+atlassian:
+  image: mcp/atlassian:latest
+  container_name: mcp-atlassian
+  stdin_open: true
+  tty: true
+  environment:
+    - CONFLUENCE_URL=${CONFLUENCE_URL}
+    - JIRA_URL=${JIRA_URL}
+    # ... more config
+  networks: [mcp]
+```
+
+**Benefits:**
+- ✅ Servers start automatically with the stack
+- ✅ Configuration via `.env` file
+- ✅ Version controlled and reproducible
+
+See `compose.yaml` for examples:
+- **Atlassian** (Jira + Confluence) - Requires API tokens
+- **OpenAPI** (API spec tools) - No configuration needed
+
+### Option 2: Runtime (MCP Catalog) - Good for Testing
+
+### When Running with Docker Compose (Komodo):
+
+Since the Gateway is running in a container, you need to execute the MCP commands **inside the Gateway container**:
 
 ```bash
-docker mcp server enable markitdown
-docker mcp server enable github
-docker mcp server enable web-browse
+# List available servers in the catalog
+docker exec mcp-gateway docker mcp server catalog
+
+# Enable a server (e.g., OpenAPI for API development)
+docker exec mcp-gateway docker mcp server enable openapi
+
+# Or Atlassian for Jira/Confluence
+docker exec mcp-gateway docker mcp server enable atlassian
+
+# Configure the server (interactive, if needed)
+docker exec -it mcp-gateway docker mcp server configure atlassian
+
+# List enabled servers
+docker exec mcp-gateway docker mcp server list
+
+# View server status
+docker exec mcp-gateway docker mcp server status openapi
+```
+
+### Common Servers to Enable:
+
+```bash
+# OpenAPI Toolkit - 5 tools (validate specs, generate code/cURL)
+docker exec mcp-gateway docker mcp server enable openapi
+
+# Atlassian (Jira + Confluence) - 37 tools
+docker exec mcp-gateway docker mcp server enable atlassian
+
+# Obsidian vault management - 12 tools (requires REST API plugin)
+docker exec mcp-gateway docker mcp server enable obsidian
+
+# Reddit integration - 6 tools (fetch posts, comments, search)
+docker exec mcp-gateway docker mcp server enable mcp-reddit
+
+# Context7 library documentation - 2 tools (up-to-date docs)
+docker exec mcp-gateway docker mcp server enable context7
+
+# OpenAPI Schema analysis - 10 tools (spec analysis)
+docker exec mcp-gateway docker mcp server enable openapi-schema
+
+# Wikipedia knowledge - 11 tools (search, articles, summaries)
+docker exec mcp-gateway docker mcp server enable wikipedia-mcp
+
+# Komodo container management - 15 tools (manage THIS Komodo instance!)
+docker exec mcp-gateway docker mcp server enable komodo-mcp
+
+# Proxmox hypervisor management - 6 tools (manage VMs, nodes, clusters)
+docker exec mcp-gateway docker mcp server enable proxmox-mcp
+
+# Tailscale network management - 20+ tools (manage devices, ACLs, status)
+docker exec mcp-gateway docker mcp server enable tailscale-mcp
+
+# GitHub integration
+docker exec mcp-gateway docker mcp server enable github
+
+# Web browsing capabilities
+docker exec mcp-gateway docker mcp server enable web-browse
+
+# PostgreSQL database tools
+docker exec mcp-gateway docker mcp server enable postgres
+
+# Filesystem operations
+docker exec mcp-gateway docker mcp server enable filesystem
 ```
 
 Each new server is added to the same `mcp` network defined in the Compose file.
 The Gateway will automatically discover and route to them.
+
+### From Komodo UI:
+
+Komodo also provides a terminal for your stack/container. You can:
+
+1. Navigate to your **HL_DockerMCPGateway** stack
+2. Click on the **mcp-gateway** container
+3. Open the **Terminal** tab
+4. Run commands directly: `docker mcp server enable atlassian`
 
 ---
 

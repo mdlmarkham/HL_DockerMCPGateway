@@ -123,6 +123,102 @@ docker compose logs -f
    docker compose up -d
    ```
 
+## Managing MCP Servers
+
+### Adding Servers from the Catalog
+
+Since the Gateway runs in a container, you need to execute MCP commands **inside the container**:
+
+#### Via Komodo UI:
+
+1. Navigate to **Stacks** → **mcp-gateway**
+2. Click on the **mcp-gateway** container
+3. Open the **Terminal** tab
+4. Run commands:
+   ```bash
+   # List available servers
+   docker mcp server catalog
+   
+   # Enable a server
+   docker mcp server enable atlassian
+   
+   # Configure it (interactive)
+   docker mcp server configure atlassian
+   
+   # List enabled servers
+   docker mcp server list
+   ```
+
+#### Via Command Line:
+
+```bash
+# From your Komodo host, execute commands in the Gateway container
+docker exec mcp-gateway docker mcp server catalog
+docker exec mcp-gateway docker mcp server enable atlassian
+docker exec -it mcp-gateway docker mcp server configure atlassian
+docker exec mcp-gateway docker mcp server list
+```
+
+#### Popular Servers to Enable:
+
+```bash
+# Atlassian (Jira + Confluence) - 37 tools
+docker exec mcp-gateway docker mcp server enable atlassian
+
+# Obsidian vault management - 12 tools
+docker exec mcp-gateway docker mcp server enable obsidian
+
+# Reddit integration - 6 tools
+docker exec mcp-gateway docker mcp server enable mcp-reddit
+
+# Context7 library docs - 2 tools
+docker exec mcp-gateway docker mcp server enable context7
+
+# OpenAPI Schema analysis - 10 tools
+docker exec mcp-gateway docker mcp server enable openapi-schema
+
+# Wikipedia knowledge - 11 tools
+docker exec mcp-gateway docker mcp server enable wikipedia-mcp
+
+# Komodo management - 15 tools (manage THIS Komodo!)
+docker exec mcp-gateway docker mcp server enable komodo-mcp
+
+# Proxmox hypervisor - 6 tools
+docker exec mcp-gateway docker mcp server enable proxmox-mcp
+
+# Tailscale network - 20+ tools
+docker exec mcp-gateway docker mcp server enable tailscale-mcp
+
+# GitHub integration
+docker exec mcp-gateway docker mcp server enable github
+
+# Web browsing
+docker exec mcp-gateway docker mcp server enable web-browse
+
+# PostgreSQL
+docker exec mcp-gateway docker mcp server enable postgres
+```
+
+### Server Configuration
+
+Some servers require credentials (API tokens, URLs, etc.). You can:
+
+1. **Interactive Configuration**: Use `docker mcp server configure <server>`
+2. **Environment Variables**: Add to `.env` file and update stack
+3. **Secrets Management**: Use Docker secrets or Komodo's secret management
+
+Example for Atlassian in `.env`:
+```bash
+CONFLUENCE_URL=https://your-company.atlassian.net/wiki
+CONFLUENCE_USERNAME=your.email@company.com
+CONFLUENCE_API_TOKEN=your_token_here
+JIRA_URL=https://your-company.atlassian.net
+JIRA_USERNAME=your.email@company.com
+JIRA_API_TOKEN=your_token_here
+```
+
+Then pass these to the server via Komodo's environment variable management.
+
 ## Auto-Start on Boot
 
 Komodo should automatically restart stacks on system reboot. Verify:

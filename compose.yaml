@@ -91,3 +91,285 @@ services:
       - /srv/mcp/workspace:/workspace:ro
     
     networks: [mcp]
+
+  # Atlassian MCP Server - Jira and Confluence integration
+  # Uncomment and configure to enable on stack deployment
+  atlassian:
+    image: mcp/atlassian:latest
+    container_name: mcp-atlassian
+    restart: "no"           # Started on-demand by gateway
+    stdin_open: true        # Keep stdin open for MCP protocol
+    tty: true              # Allocate pseudo-TTY
+    
+    environment:
+      # Confluence Configuration
+      - CONFLUENCE_URL=${CONFLUENCE_URL:-}
+      - CONFLUENCE_USERNAME=${CONFLUENCE_USERNAME:-}
+      - CONFLUENCE_API_TOKEN=${CONFLUENCE_API_TOKEN:-}
+      
+      # Jira Configuration
+      - JIRA_URL=${JIRA_URL:-}
+      - JIRA_USERNAME=${JIRA_USERNAME:-}
+      - JIRA_API_TOKEN=${JIRA_API_TOKEN:-}
+      
+      # Optional: Filter searches to specific spaces/projects
+      # Uncomment and customize as needed
+      # - CONFLUENCE_SPACES_FILTER=${CONFLUENCE_SPACES_FILTER:-}
+      # - JIRA_PROJECTS_FILTER=${JIRA_PROJECTS_FILTER:-}
+    
+    # Security hardening
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    
+    # Workspace access for downloading attachments
+    volumes:
+      - /srv/mcp/workspace:/workspace:rw
+    
+    networks: [mcp]
+    
+    # Only start if credentials are provided
+    profiles:
+      - atlassian  # Remove this line to always include in stack
+
+  # OpenAPI MCP Server - OpenAPI/Swagger spec tools
+  # Generate code, cURL commands, validate specs
+  openapi:
+    image: mcp/openapi:latest
+    container_name: mcp-openapi
+    restart: "no"           # Started on-demand by gateway
+    stdin_open: true        # Keep stdin open for MCP protocol
+    tty: true              # Allocate pseudo-TTY
+    
+    environment:
+      - MODE=Stdio          # Required for MCP protocol
+    
+    # Security hardening
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    
+    # Optional: Mount workspace if you want to load specs from files
+    volumes:
+      - /srv/mcp/workspace:/workspace:ro
+    
+    networks: [mcp]
+    
+    # Optional: Use profile to enable conditionally
+    # Remove 'profiles' section to always enable
+    profiles:
+      - openapi
+
+  # Obsidian MCP Server - Obsidian vault management
+  # Requires Obsidian REST API plugin
+  obsidian:
+    image: mcp/obsidian:latest
+    container_name: mcp-obsidian
+    restart: "no"           # Started on-demand by gateway
+    stdin_open: true        # Keep stdin open for MCP protocol
+    tty: true              # Allocate pseudo-TTY
+    
+    environment:
+      - OBSIDIAN_HOST=${OBSIDIAN_HOST:-host.docker.internal}
+      - OBSIDIAN_API_KEY=${OBSIDIAN_API_KEY:-}
+    
+    # Security hardening
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    
+    # Optional: Mount workspace for file access
+    volumes:
+      - /srv/mcp/workspace:/workspace:ro
+    
+    networks: [mcp]
+    
+    # Only start if API key is provided
+    profiles:
+      - obsidian
+
+  # Reddit MCP Server - Reddit integration
+  # Fetch posts, comments, search, post content
+  reddit:
+    image: mcp/reddit-mcp:latest
+    container_name: mcp-reddit
+    restart: "no"           # Started on-demand by gateway
+    stdin_open: true        # Keep stdin open for MCP protocol
+    tty: true              # Allocate pseudo-TTY
+    
+    environment:
+      - USERNAME=${REDDIT_USERNAME:-}
+      - REDDIT_CLIENT_ID=${REDDIT_CLIENT_ID:-}
+      - REDDIT_CLIENT_SECRET=${REDDIT_CLIENT_SECRET:-}
+      - REDDIT_PASSWORD=${REDDIT_PASSWORD:-}
+    
+    # Security hardening
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    
+    networks: [mcp]
+    
+    # Only start if Reddit credentials are provided
+    profiles:
+      - reddit
+
+  # Context7 MCP Server - Up-to-date library documentation
+  # No configuration required
+  context7:
+    image: mcp/context7:latest
+    container_name: mcp-context7
+    restart: "no"           # Started on-demand by gateway
+    stdin_open: true        # Keep stdin open for MCP protocol
+    tty: true              # Allocate pseudo-TTY
+    
+    # Security hardening
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    
+    networks: [mcp]
+    
+    # Optional: Use profile to enable conditionally
+    profiles:
+      - context7
+
+  # OpenAPI Schema MCP Server - OpenAPI schema analysis
+  # Requires volume mount for local schema files
+  openapi-schema:
+    image: mcp/openapi-schema:latest
+    container_name: mcp-openapi-schema
+    restart: "no"           # Started on-demand by gateway
+    stdin_open: true        # Keep stdin open for MCP protocol
+    tty: true              # Allocate pseudo-TTY
+    
+    # Security hardening
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    
+    # Mount workspace for OpenAPI schema files
+    volumes:
+      - /srv/mcp/workspace:/workspace:ro
+    
+    networks: [mcp]
+    
+    # Optional: Use profile to enable conditionally
+    profiles:
+      - openapi-schema
+
+  # Wikipedia MCP Server - Wikipedia knowledge access
+  # No configuration required
+  wikipedia:
+    image: mcp/wikipedia-mcp:latest
+    container_name: mcp-wikipedia
+    restart: "no"           # Started on-demand by gateway
+    stdin_open: true        # Keep stdin open for MCP protocol
+    tty: true              # Allocate pseudo-TTY
+    
+    # Security hardening
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    
+    networks: [mcp]
+    
+    # Optional: Use profile to enable conditionally
+    profiles:
+      - wikipedia
+
+  # Komodo MCP Server - Komodo container management
+  # Manage Docker containers, deployments, and stacks
+  komodo-mcp:
+    image: ghcr.io/mp-tool/komodo-mcp-server:latest
+    container_name: mcp-komodo
+    restart: "no"           # Started on-demand by gateway
+    stdin_open: true        # Keep stdin open for MCP protocol
+    tty: true              # Allocate pseudo-TTY
+    
+    environment:
+      - KOMODO_URL=${KOMODO_URL:-}
+      - KOMODO_USERNAME=${KOMODO_USERNAME:-}
+      - KOMODO_PASSWORD=${KOMODO_PASSWORD:-}
+      - NODE_ENV=production
+    
+    # Security hardening
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    
+    networks: [mcp]
+    
+    # Only start if credentials are provided
+    profiles:
+      - komodo
+
+  # Proxmox MCP Server - HomeLab Hypervisor Management
+  # Requires: Proxmox host URL, API token authentication
+  # Provides: 6 tools for managing Proxmox nodes, VMs, storage, and clusters
+  proxmox-mcp:
+    image: ghcr.io/canvrno/proxmoxmcp:latest
+    container_name: mcp-proxmox
+    restart: "no"
+    stdin_open: true  # Required for MCP protocol
+    tty: true         # Required for MCP protocol
+    environment:
+      PROXMOX_HOST: ${PROXMOX_HOST}
+      PROXMOX_PORT: ${PROXMOX_PORT:-8006}
+      PROXMOX_USER: ${PROXMOX_USER}
+      PROXMOX_TOKEN_NAME: ${PROXMOX_TOKEN_NAME}
+      PROXMOX_TOKEN_VALUE: ${PROXMOX_TOKEN_VALUE}
+      PROXMOX_VERIFY_SSL: ${PROXMOX_VERIFY_SSL:-false}
+      PROXMOX_SERVICE: ${PROXMOX_SERVICE:-PVE}
+      LOG_LEVEL: ${PROXMOX_LOG_LEVEL:-INFO}
+    networks:
+      - mcp
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    profiles:
+      - proxmox
+
+  # Tailscale MCP Server - Tailscale Network Management
+  # Requires: Tailscale API key and tailnet name
+  # Provides: 20+ tools for managing Tailscale devices, ACLs, and network status
+  tailscale-mcp:
+    image: ghcr.io/hexsleeves/tailscale-mcp-server:latest
+    container_name: mcp-tailscale
+    restart: "no"
+    stdin_open: true  # Required for MCP protocol
+    tty: true         # Required for MCP protocol
+    environment:
+      TAILSCALE_API_KEY: ${TAILSCALE_MCP_API_KEY}
+      TAILSCALE_TAILNET: ${TAILSCALE_MCP_TAILNET}
+      TAILSCALE_API_BASE_URL: ${TAILSCALE_API_BASE_URL:-https://api.tailscale.com}
+      LOG_LEVEL: ${TAILSCALE_MCP_LOG_LEVEL:-1}
+      NODE_ENV: ${NODE_ENV:-production}
+    networks:
+      - mcp
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/logs
+    profiles:
+      - tailscale-mcp
