@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "markitdown": {
+      "command": "docker",
+      "args": [
+        "exec",
+        "-i",
+        "mcp-markitdown",
+        "markitdown-mcp"
+      ],
+      "transport": "stdio"
+    }
+  }
+}

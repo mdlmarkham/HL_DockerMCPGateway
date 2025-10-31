@@ -23,6 +23,8 @@ services:
     environment:
       # Optional: Configure the HTTP server port (default: 3000)
       - PORT=${MCP_GATEWAY_PORT:-3000}
+      # Path to MCP configuration file
+      - MCP_CONFIG_PATH=/app/mcp-config.json
     
     # Expose port for tsdproxy to proxy
     ports:
@@ -40,6 +42,8 @@ services:
       - mcp-gateway-data:/var/lib/mcp-gateway
       # Docker socket for MCP server discovery
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      # MCP Gateway configuration (optional - for custom server definitions)
+      - ./mcp-config.json:/app/mcp-config.json:ro
       # Shared read-only workspace for MCP tools
       # Update this path to match your environment
       - /srv/mcp/workspace:/workspace:ro
