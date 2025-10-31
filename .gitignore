@@ -1,0 +1,40 @@
+# Docker volumes and data
+mcp-gateway-data/
+tailscale-*/
+workspace/
+
+# Environment files - NEVER commit auth keys!
+.env
+.env.local
+.env.*.local
+*.env
+
+# Tailscale state directories
+tailscale/state/
+tailscale/*.state
+
+# Logs
+*.log
+logs/
+
+# OS specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE specific
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Temporary files
+tmp/
+temp/
+*.tmp

@@ -1,0 +1,19 @@
+{
+  "TCP": {
+    "443": {
+      "HTTPS": true
+    }
+  },
+  "Web": {
+    "mcp-gateway.${TS_CERT_DOMAIN}:443": {
+      "Handlers": {
+        "/": {
+          "Proxy": "http://127.0.0.1:6277"
+        },
+        "/inspector": {
+          "Proxy": "http://127.0.0.1:6274"
+        }
+      }
+    }
+  }
+}

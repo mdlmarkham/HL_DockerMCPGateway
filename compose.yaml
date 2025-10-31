@@ -1,0 +1,93 @@
+version: "3.9"
+
+# Network configuration
+# The 'mcp' network allows containers to communicate internally
+networks:
+  mcp:
+    driver: bridge
+
+# Persistent volumes
+volumes:
+  mcp-gateway-data:
+    # Stores gateway state, configuration, and discovered servers
+  tailscale-mcp-gateway:
+    # Stores Tailscale state for the MCP Gateway container
+  tailscale-mcp-markitdown:
+    # Stores Tailscale state for the Markitdown container (optional)
+
+services:
+  # Tailscale sidecar for MCP Gateway
+  # This container provides Tailscale connectivity for the MCP Gateway
+  tailscale-gateway:
+    image: tailscale/tailscale:latest
+    container_name: tailscale-mcp-gateway
+    hostname: mcp-gateway
+    restart: unless-stopped
+    
+    environment:
+      # REQUIRED: Replace with your Tailscale auth key
+      # Generate at: https://login.tailscale.com/admin/settings/keys
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      # Recommended: Use tags for access control
+      - TS_EXTRA_ARGS=--advertise-tags=tag:mcp-server
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false
+      # Enable Tailscale Serve to expose the MCP Gateway
+      - TS_SERVE_CONFIG=/config/serve.json
+    
+    volumes:
+      - tailscale-mcp-gateway:/var/lib/tailscale
+      - /dev/net/tun:/dev/net/tun
+      - ./tailscale/serve-config.json:/config/serve.json:ro
+    
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    
+    networks: [mcp]
+
+  # MCP Gateway - Main entry point for MCP clients
+  mcp-gateway:
+    image: docker/mcp-gateway:latest
+    container_name: mcp-gateway
+    restart: unless-stopped
+    
+    # Use Tailscale network stack from sidecar
+    network_mode: service:tailscale-gateway
+    depends_on:
+      - tailscale-gateway
+    
+    # Security hardening
+    security_opt:
+      - no-new-privileges:true
+    read_only: false        # Gateway needs write access for state management
+    tmpfs:
+      - /tmp
+    
+    # Persistent storage and workspace access
+    volumes:
+      - mcp-gateway-data:/var/lib/mcp-gateway
+      # Shared read-only workspace for MCP tools
+      # Update this path to match your environment
+      - /srv/mcp/workspace:/workspace:ro
+
+  # Markitdown MCP Server - Converts documents to Markdown
+  markitdown:
+    image: mcp/markitdown:latest
+    container_name: mcp-markitdown
+    restart: "no"           # Started on-demand by gateway
+    stdin_open: true        # Keep stdin open for MCP protocol
+    tty: true              # Allocate pseudo-TTY
+    
+    # Security hardening
+    security_opt:
+      - no-new-privileges:true
+    read_only: true        # Server doesn't need write access
+    tmpfs:
+      - /tmp
+    
+    # Workspace access (same as gateway)
+    volumes:
+      - /srv/mcp/workspace:/workspace:ro
+    
+    networks: [mcp]
