@@ -172,15 +172,19 @@ nano .env
 
 ### 4️⃣ Deploy the Stack via Komodo
 
-Upload to Komodo or deploy directly:
+The first deployment will build the gateway image from source:
 
 ```bash
-# Deploy the entire stack
-docker compose up -d
+# Build and deploy the entire stack
+docker compose up -d --build
 
-# The gateway-runner service will start automatically
-# It will spawn MCP server containers on demand
+# The gateway-runner service will:
+# - Build the gateway from GitHub source
+# - Start automatically
+# - Spawn MCP server containers on demand
 ```
+
+**Note**: The first deployment takes a few minutes to build the gateway. Subsequent deployments are instant.
 
 ### 5️⃣ Verify the Gateway is Running
 
