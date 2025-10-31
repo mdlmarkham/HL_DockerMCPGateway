@@ -1,518 +1,1063 @@
-# 🧠 MCP Gateway Stack (Komodo Deployment)
+# 🌳 HomeLab MCP Gateway with MCPJungle# 🧠 MCP Gateway Stack (Komodo Deployment)
 
-[![Docker Compose](https://img.shields.io/badge/docker--compose-v3.9-blue.svg)](https://docs.docker.com/compose/)
-[![Tailscale](https://img.shields.io/badge/Tailscale-Enabled-blue.svg)](https://tailscale.com)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+
+[![MCPJungle](https://img.shields.io/badge/MCPJungle-Self--Hosted-blue.svg)](https://github.com/mcpjungle/MCPJungle)[![Docker Compose](https://img.shields.io/badge/docker--compose-v3.9-blue.svg)](https://docs.docker.com/compose/)
+
+[![Docker Compose](https://img.shields.io/badge/docker--compose-ready-blue.svg)](https://docs.docker.com/compose/)[![Tailscale](https://img.shields.io/badge/Tailscale-Enabled-blue.svg)](https://tailscale.com)
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/YOUR-USERNAME/HL_DockerMCPGateway/graphs/commit-activity)
 
-This repository contains the Docker Compose configuration for running the **Docker MCP Gateway** and the **markitdown-mcp** server inside a **homelab environment**, managed by **Komodo** and exposed as **Tailscale Services** for secure, easy access.
+Self-hosted MCP Gateway using [MCPJungle](https://github.com/mcpjungle/MCPJungle) for managing and accessing Model Context Protocol (MCP) servers in your HomeLab environment.[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/YOUR-USERNAME/HL_DockerMCPGateway/graphs/commit-activity)
 
----
 
-## 📦 Overview
 
-The [**Docker MCP Gateway**](https://github.com/docker/mcp-gateway) provides a unified endpoint for Model Context Protocol (MCP) clients such as Claude Desktop, Cursor, and GitHub Copilot MCP.  
-It aggregates multiple MCP servers (tools) and exposes them to clients through a single interface.
+---This repository contains the Docker Compose configuration for running the **Docker MCP Gateway** and the **markitdown-mcp** server inside a **homelab environment**, managed by **Komodo** and exposed as **Tailscale Services** for secure, easy access.
 
-### Key Features
 
-- 🔐 **Tailscale Integration**: HTTPS access via tsdproxy or Tailscale Serve
-- 🎯 **Flexible Deployment**: Use existing tsdproxy or dedicated sidecar
+
+## 📦 What is MCPJungle?---
+
+
+
+MCPJungle is a production-ready, self-hosted MCP Gateway and Registry that provides:## 📦 Overview
+
+
+
+- **🎯 Centralized Management**: Single source-of-truth for all MCP serversThe [**Docker MCP Gateway**](https://github.com/docker/mcp-gateway) provides a unified endpoint for Model Context Protocol (MCP) clients such as Claude Desktop, Cursor, and GitHub Copilot MCP.  
+
+- **🖥️ Web UI + CLI**: Easy server registration and managementIt aggregates multiple MCP servers (tools) and exposes them to clients through a single interface.
+
+- **🔍 Tool Discovery**: Unified gateway endpoint for all your MCP tools
+
+- **🔒 Access Control**: Enterprise features for multi-user environments### Key Features
+
+- **📡 Both Transports**: Supports STDIO and HTTP MCP servers
+
+- **🎛️ Tool Groups**: Organize tools for different MCP clients- 🔐 **Tailscale Integration**: HTTPS access via tsdproxy or Tailscale Serve
+
+- **📊 Observability**: OpenTelemetry metrics support- 🎯 **Flexible Deployment**: Use existing tsdproxy or dedicated sidecar
+
 - 🔒 **Zero Trust Security**: Access controlled via Tailscale ACLs
-- 📡 **No Port Forwarding**: No firewall configuration needed
+
+---- 📡 **No Port Forwarding**: No firewall configuration needed
+
 - 🚀 **Auto-provisioned TLS**: Certificates managed by Tailscale
-- 🎛️ **Komodo Managed**: Easy deployment and monitoring
+
+## 🏗️ Architecture- 🎛️ **Komodo Managed**: Easy deployment and monitoring
+
 - 🔍 **Auto-Discovery**: Finds MCP servers on Docker network
 
-### Architecture
+```
+
+┌─────────────────────────────────────────────────────────┐### Architecture
+
+│  MCP Clients (Claude, Cursor, etc.)                     │
+
+│  Connect to: http://localhost:8080/mcp                  │```
+
+└────────────────────────┬────────────────────────────────┘┌─────────────────────────────────────────────────────────────┐
+
+                         ││              Your Tailscale Network                          │
+
+                         │ MCP Protocol (HTTP)│                                                              │
+
+                         ▼│  ┌──────────────┐      ┌────────────────────────────┐      │
+
+┌─────────────────────────────────────────────────────────┐│  │ MCP Clients  │─────▶│ Docker MCP Gateway (CLI)   │      │
+
+│  MCPJungle Gateway                                       ││  │ (Claude,etc) │ sock │ /var/run/mcp-gateway.sock  │      │
+
+│  - Unified MCP endpoint                                  ││  └──────────────┘      └──────────┬─────────────────┘      │
+
+│  - Tool discovery & routing                              ││                                    │                        │
+
+│  - PostgreSQL backend                                    ││                         ┌──────────▼───────────┐            │
+
+│  - Web UI on port 8080                                   ││                         │   Docker Socket      │            │
+
+└────────────────────────┬────────────────────────────────┘│                         │   Spawns servers:    │            │
+
+                         ││                         └──────────┬───────────┘            │
+
+        ┌────────────────┼────────────────┐│                                    │                        │
+
+        │                │                ││                         ┌──────────▼───────────┐            │
+
+        ▼                ▼                ▼│                         │   MCP Servers        │            │
+
+    HTTP Servers    STDIO Servers    Custom Servers│                         │   + markitdown       │            │
+
+    (context7)      (filesystem)     (Your own)│                         │   + proxmox-mcp      │            │
+
+```│                         │   + tailscale-mcp    │            │
+
+│                         └──────────────────────┘            │
+
+---│                                                              │
+
+└─────────────────────────────────────────────────────────────┘
+
+## 🚀 Quick Start                 Managed by Komodo
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│              Your Tailscale Network                          │
-│                                                              │
-│  ┌──────────────┐      ┌────────────────────────────┐      │
-│  │ MCP Clients  │─────▶│ Docker MCP Gateway (CLI)   │      │
-│  │ (Claude,etc) │ sock │ /var/run/mcp-gateway.sock  │      │
-│  └──────────────┘      └──────────┬─────────────────┘      │
-│                                    │                        │
-│                         ┌──────────▼───────────┐            │
-│                         │   Docker Socket      │            │
-│                         │   Spawns servers:    │            │
-│                         └──────────┬───────────┘            │
-│                                    │                        │
-│                         ┌──────────▼───────────┐            │
-│                         │   MCP Servers        │            │
-│                         │   + markitdown       │            │
-│                         │   + proxmox-mcp      │            │
-│                         │   + tailscale-mcp    │            │
-│                         └──────────────────────┘            │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
-                 Managed by Komodo
-```
+
+### 1. Deploy the Stack
 
 In this setup:
 
-- **Docker MCP Gateway (CLI Tool)**  
-  NOT a long-running container on port 3000. It's a CLI process that:
-  - Reads `mcp-servers.json` to know which servers to manage
+```bash
+
+# Clone the repository- **Docker MCP Gateway (CLI Tool)**  
+
+git clone https://github.com/YOUR-USERNAME/HL_DockerMCPGateway.git  NOT a long-running container on port 3000. It's a CLI process that:
+
+cd HL_DockerMCPGateway  - Reads `mcp-servers.json` to know which servers to manage
+
   - Spawns MCP server containers on demand via Docker socket
-  - Listens on a UNIX socket (default: `/var/run/mcp-gateway.sock`)
-  - MCP clients connect to this socket, not HTTP
+
+# Create environment file  - Listens on a UNIX socket (default: `/var/run/mcp-gateway.sock`)
+
+cp .env.example .env  - MCP clients connect to this socket, not HTTP
+
+# Edit .env with your passwords and credentials
 
 - **MCP Server Containers**  
-  - **Markitdown**: Converts files (PDF, DOCX, HTML, etc.) into Markdown
-  - **Proxmox MCP**: Manages VMs, containers, and nodes in your hypervisor
+
+# Start MCPJungle and PostgreSQL  - **Markitdown**: Converts files (PDF, DOCX, HTML, etc.) into Markdown
+
+docker compose up -d  - **Proxmox MCP**: Manages VMs, containers, and nodes in your hypervisor
+
   - **Tailscale MCP**: Automates your Tailscale network configuration
-  - Many more available via profiles
-  - Started on-demand by the gateway, not manually
 
-- **Komodo** orchestrates the server container definitions.
+# Check that services are running  - Many more available via profiles
 
----
+docker compose ps  - Started on-demand by the gateway, not manually
 
-## 🗂 Directory Structure
 
-```
+
+# View logs- **Komodo** orchestrates the server container definitions.
+
+docker compose logs -f mcpjungle
+
+```---
+
+
+
+The gateway will be available at:## 🗂 Directory Structure
+
+- **MCP Endpoint**: http://localhost:8080/mcp
+
+- **Health Check**: http://localhost:8080/health```
+
 .
-├── compose.yaml             # MCP Gateway + MCP servers
-├── tailscale/
-│   └── serve-config.json    # Tailscale Serve config (if using sidecar)
-├── README.md                # This file
-├── LICENSE                  # MIT License
-├── .gitignore               # Git ignore rules
-├── .env.example             # Environment template
-├── docs/
-│   ├── KOMODO_SETUP.md      # Komodo deployment guide
-│   ├── TAILSCALE_SETUP.md   # Basic Tailscale configuration
-│   ├── TSDPROXY_SETUP.md    # tsdproxy integration guide (RECOMMENDED!)
-│   ├── TAILSCALE_SERVICES.md # Alternative: Tailscale Services with sidecar
-│   ├── TROUBLESHOOTING.md   # Common issues and solutions
-│   └── WORKSPACE_SETUP.md   # Workspace configuration
-└── workspace/               # Shared folder mounted read-only
-```
 
-- **`workspace/`**:  
+### 2. Install MCPJungle CLI├── compose.yaml             # MCP Gateway + MCP servers
+
+├── tailscale/
+
+The CLI is used to register and manage MCP servers:│   └── serve-config.json    # Tailscale Serve config (if using sidecar)
+
+├── README.md                # This file
+
+**macOS/Linux (Homebrew):**├── LICENSE                  # MIT License
+
+```bash├── .gitignore               # Git ignore rules
+
+brew install mcpjungle/mcpjungle/mcpjungle├── .env.example             # Environment template
+
+```├── docs/
+
+│   ├── KOMODO_SETUP.md      # Komodo deployment guide
+
+**Windows/Manual Install:**│   ├── TAILSCALE_SETUP.md   # Basic Tailscale configuration
+
+Download the binary from [MCPJungle Releases](https://github.com/mcpjungle/MCPJungle/releases)│   ├── TSDPROXY_SETUP.md    # tsdproxy integration guide (RECOMMENDED!)
+
+│   ├── TAILSCALE_SERVICES.md # Alternative: Tailscale Services with sidecar
+
+**Verify Installation:**│   ├── TROUBLESHOOTING.md   # Common issues and solutions
+
+```bash│   └── WORKSPACE_SETUP.md   # Workspace configuration
+
+mcpjungle version└── workspace/               # Shared folder mounted read-only
+
+``````
+
+
+
+### 3. Register MCP Servers- **`workspace/`**:  
+
   Place any files here that you want to make accessible to MCP tools for conversion or processing.
 
+#### HTTP-based MCP Server (e.g., context7)
+
 - **`docs/TSDPROXY_SETUP.md`**:  
-  **RECOMMENDED**: Guide for integrating with your existing tsdproxy setup.
 
-- **`tailscale/serve-config.json`** (optional):  
-  If using Tailscale sidecar instead of tsdproxy, configures Tailscale Serve.
+```bash  **RECOMMENDED**: Guide for integrating with your existing tsdproxy setup.
 
----
+mcpjungle register \
 
-## ⚙️ Prerequisites
+  --name context7 \- **`tailscale/serve-config.json`** (optional):  
 
-- **Komodo** installed and configured on the host — See [Komodo Setup Guide](docs/KOMODO_SETUP.md)
-- **Docker** and **Docker Compose v2.20+** available
-- **Tailscale** running on the host with tsdproxy configured
-  - **OR** a Tailscale Account with auth key for sidecar deployment
-- Sign up at https://tailscale.com if you don't have an account
-- **Tailscale Auth Key** — Generate at https://login.tailscale.com/admin/settings/keys
-- **Services Enabled** — Enable at https://login.tailscale.com/admin/services
-- Optional: a **Tailscale ACL** restricting access to TCP ports 6274–6277
+  --description "Up-to-date library documentation" \  If using Tailscale sidecar instead of tsdproxy, configures Tailscale Serve.
 
-## 📚 Documentation
+  --url https://mcp.context7.com/mcp
+
+```---
+
+
+
+#### STDIO-based MCP Server (e.g., filesystem)## ⚙️ Prerequisites
+
+
+
+```bash- **Komodo** installed and configured on the host — See [Komodo Setup Guide](docs/KOMODO_SETUP.md)
+
+# Create configuration file- **Docker** and **Docker Compose v2.20+** available
+
+cat > filesystem.json <<EOF- **Tailscale** running on the host with tsdproxy configured
+
+{  - **OR** a Tailscale Account with auth key for sidecar deployment
+
+  "name": "filesystem",- Sign up at https://tailscale.com if you don't have an account
+
+  "transport": "stdio",- **Tailscale Auth Key** — Generate at https://login.tailscale.com/admin/settings/keys
+
+  "description": "Filesystem access for MCP clients",- **Services Enabled** — Enable at https://login.tailscale.com/admin/services
+
+  "command": "npx",- Optional: a **Tailscale ACL** restricting access to TCP ports 6274–6277
+
+  "args": ["-y", "@modelcontextprotocol/server-filesystem", "/host"]
+
+}## 📚 Documentation
+
+EOF
 
 - **[tsdproxy Integration Guide](docs/TSDPROXY_SETUP.md)** - **⭐ RECOMMENDED** - Use your existing tsdproxy setup
-- **[Tailscale Services Guide](docs/TAILSCALE_SERVICES.md)** - Alternative: Deploy with dedicated Tailscale sidecar
-- **[Komodo Setup Guide](docs/KOMODO_SETUP.md)** - Detailed instructions for deploying with Komodo
-- **[Adding MCP Servers](docs/ADDING_MCP_SERVERS.md)** - How to add and configure additional MCP servers
+
+# Register the server- **[Tailscale Services Guide](docs/TAILSCALE_SERVICES.md)** - Alternative: Deploy with dedicated Tailscale sidecar
+
+mcpjungle register -c filesystem.json- **[Komodo Setup Guide](docs/KOMODO_SETUP.md)** - Detailed instructions for deploying with Komodo
+
+```- **[Adding MCP Servers](docs/ADDING_MCP_SERVERS.md)** - How to add and configure additional MCP servers
+
 - **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions
-- **[Workspace Setup](docs/WORKSPACE_SETUP.md)** - Configure the workspace directory
 
----
+#### Your HomeLab Servers (Proxmox, Tailscale, etc.)- **[Workspace Setup](docs/WORKSPACE_SETUP.md)** - Configure the workspace directory
 
-## 🚀 Quick Start (Komodo Automatic Deployment)
 
-### 1️⃣ Clone This Repository
-```bash
-git clone https://github.com/mdlmarkham/HL_DockerMCPGateway.git
-cd HL_DockerMCPGateway
-```
 
-### 2️⃣ Configure MCP Servers (Optional)
+If you're running these as separate HTTP services:---
 
-Edit `mcp-servers.json` to add more servers beyond markitdown:
 
-```json
-{
-  "mcpServers": {
+
+```bash## 🚀 Quick Start (Komodo Automatic Deployment)
+
+# Example: Proxmox MCP Server (HTTP)
+
+mcpjungle register \### 1️⃣ Clone This Repository
+
+  --name proxmox \```bash
+
+  --description "Proxmox hypervisor management" \git clone https://github.com/mdlmarkham/HL_DockerMCPGateway.git
+
+  --url http://your-proxmox-mcp-server:8080/mcp \cd HL_DockerMCPGateway
+
+  --bearer-token "${PROXMOX_API_TOKEN}"```
+
+
+
+# Example: Tailscale MCP Server (HTTP)### 2️⃣ Configure MCP Servers (Optional)
+
+mcpjungle register \
+
+  --name tailscale \Edit `mcp-servers.json` to add more servers beyond markitdown:
+
+  --description "Tailscale network management" \
+
+  --url http://your-tailscale-mcp-server:8080/mcp \```json
+
+  --bearer-token "${TAILSCALE_API_KEY}"{
+
+```  "mcpServers": {
+
     "markitdown": {
-      "command": "docker",
+
+### 4. Verify Registration      "command": "docker",
+
       "args": [
-        "run", "--rm", "-i",
-        "--network=hl_dockermcpgateway_mcp",
-        "--name=mcp-markitdown",
+
+```bash        "run", "--rm", "-i",
+
+# List all registered servers        "--network=hl_dockermcpgateway_mcp",
+
+mcpjungle list servers        "--name=mcp-markitdown",
+
         "-v", "/srv/mcp/workspace:/workspace:ro",
-        "--security-opt=no-new-privileges:true",
-        "--read-only",
+
+# List all available tools        "--security-opt=no-new-privileges:true",
+
+mcpjungle list tools        "--read-only",
+
         "--tmpfs=/tmp",
-        "mcp/markitdown:latest"
-      ]
+
+# Get details about a specific server        "mcp/markitdown:latest"
+
+mcpjungle get server context7      ]
+
     }
-  }
-}
+
+# Test a tool  }
+
+mcpjungle invoke context7__get-library-docs \}
+
+  --input '{"context7CompatibleLibraryID": "/lodash/lodash"}'```
+
 ```
 
 See [docs/GATEWAY_CONFIG.md](docs/GATEWAY_CONFIG.md) for more server examples.
 
+### 5. Connect Your MCP Clients
+
 ### 3️⃣ Configure Server Credentials (Optional)
+
+#### Claude Desktop
 
 If using Proxmox, Tailscale, or other authenticated servers:
 
-```bash
-cp .env.example .env
-nano .env
-# Add your credentials
-```
-
-### 4️⃣ Deploy the Stack via Komodo
-
-The first deployment will build the gateway image from source:
+Edit your Claude config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
 
 ```bash
-# Build and deploy the entire stack
-docker compose up -d --build
 
-# The gateway-runner service will:
+```jsoncp .env.example .env
+
+{nano .env
+
+  "mcpServers": {# Add your credentials
+
+    "mcpjungle": {```
+
+      "command": "npx",
+
+      "args": [### 4️⃣ Deploy the Stack via Komodo
+
+        "mcp-remote",
+
+        "http://localhost:8080/mcp",The first deployment will build the gateway image from source:
+
+        "--allow-http"
+
+      ]```bash
+
+    }# Build and deploy the entire stack
+
+  }docker compose up -d --build
+
+}
+
+```# The gateway-runner service will:
+
 # - Build the gateway from GitHub source
-# - Start automatically
+
+#### Cursor# - Start automatically
+
 # - Spawn MCP server containers on demand
-```
 
-**Note**: The first deployment takes a few minutes to build the gateway. Subsequent deployments are instant.
+Edit your Cursor MCP config:```
 
-### 5️⃣ Verify the Gateway is Running
 
-```bash
-# Check gateway logs
-docker logs mcp-gateway
 
-# Check if socket was created
+```json**Note**: The first deployment takes a few minutes to build the gateway. Subsequent deployments are instant.
+
+{
+
+  "mcpServers": {### 5️⃣ Verify the Gateway is Running
+
+    "mcpjungle": {
+
+      "url": "http://localhost:8080/mcp"```bash
+
+    }# Check gateway logs
+
+  }docker logs mcp-gateway
+
+}
+
+```# Check if socket was created
+
 ls -la /var/run/mcp-gateway.sock
 
+---
+
 # Test the gateway
-docker logs mcp-gateway | grep -i "listening"
+
+## 🎛️ Managementdocker logs mcp-gateway | grep -i "listening"
+
 ```
+
+### List Tools & Servers
 
 ### 6️⃣ Connect Your MCP Client
 
-Configure your MCP client (Claude Desktop, Cursor, etc.) to connect to the gateway socket:
+```bash
+
+# List all serversConfigure your MCP client (Claude Desktop, Cursor, etc.) to connect to the gateway socket:
+
+mcpjungle list servers
 
 ```json
-{
-  "mcpServers": {
+
+# List all tools{
+
+mcpjungle list tools  "mcpServers": {
+
     "docker-gateway": {
-      "command": "docker",
-      "args": ["exec", "-i", "mcp-gateway", "mcp-gateway", "connect"],
+
+# List tools from specific server      "command": "docker",
+
+mcpjungle list tools --server filesystem      "args": ["exec", "-i", "mcp-gateway", "mcp-gateway", "connect"],
+
       "transport": "stdio"
-    }
-  }
+
+# View tool details    }
+
+mcpjungle get tool filesystem__read_file  }
+
 }
-```
 
-Or if the gateway socket is accessible from your client machine, connect directly to `/var/run/mcp-gateway.sock`.
+# Check tool usage statistics```
 
-### 7️⃣ Add More Servers (Optional)
+mcpjungle usage filesystem__read_file
 
-Edit `mcp-servers.json` and restart the gateway:
+```Or if the gateway socket is accessible from your client machine, connect directly to `/var/run/mcp-gateway.sock`.
 
-```bash
+
+
+### Enable/Disable Tools### 7️⃣ Add More Servers (Optional)
+
+
+
+```bashEdit `mcp-servers.json` and restart the gateway:
+
+# Disable a specific tool (won't be available to clients)
+
+mcpjungle disable tool filesystem__read_file```bash
+
 # Edit configuration
-nano mcp-servers.json
+
+# Re-enable itnano mcp-servers.json
+
+mcpjungle enable tool filesystem__read_file
 
 # Restart gateway to pick up changes
-docker compose restart mcp-gateway
+
+# Disable entire server (all its tools)docker compose restart mcp-gateway
+
+mcpjungle disable server filesystem
 
 # Gateway will now manage the new servers
+
+# Re-enable server```
+
+mcpjungle enable server filesystem
+
+```### 6️⃣ Configure Your MCP Client
+
+
+
+### Remove ServersAccess the gateway at: `https://mcp-gateway.YOUR-TAILNET.ts.net`
+
+
+
+```bashSee **[Tailscale Services Guide](docs/TAILSCALE_SERVICES.md)** for detailed client configuration.
+
+# Deregister a server (removes all its tools)
+
+mcpjungle deregister filesystem---
+
 ```
-
-### 6️⃣ Configure Your MCP Client
-
-Access the gateway at: `https://mcp-gateway.YOUR-TAILNET.ts.net`
-
-See **[Tailscale Services Guide](docs/TAILSCALE_SERVICES.md)** for detailed client configuration.
-
----
 
 ## 🔧 Detailed Setup
 
+---
+
 For comprehensive setup instructions including:
-- Tailscale ACL configuration
+
+## 🎯 Tool Groups- Tailscale ACL configuration
+
 - Service discovery setup
-- Multiple MCP server deployment
+
+Create subsets of tools for different MCP clients to avoid overwhelming them with too many tools:- Multiple MCP server deployment
+
 - Access control configuration
+
+### Create a Tool Group
 
 👉 **See the [Tailscale Services Guide](docs/TAILSCALE_SERVICES.md)**
 
----
+```bash
 
-## 🔐 Network and Security
+# Create a tool group config---
 
-| Component              | Access Method          | Security                      |
-| ---------------------- | ---------------------- | ----------------------------- |
-| **Gateway (HTTPS)**    | Tailscale MagicDNS     | Zero Trust, Tailscale ACLs    |
-| **Inspector**          | /inspector path        | Same as gateway               |
-| **Markitdown**         | Internal only          | Via Gateway                   |
-| **Tailscale Network**  | Mesh VPN               | WireGuard® encrypted          |
-| **TLS Certificates**   | Auto-provisioned       | Let's Encrypt via Tailscale   |
+cat > claude-tools.json <<EOF
+
+{## 🔐 Network and Security
+
+  "name": "claude-tools",
+
+  "description": "Tools for Claude Desktop",| Component              | Access Method          | Security                      |
+
+  "included_tools": [| ---------------------- | ---------------------- | ----------------------------- |
+
+    "filesystem__read_file",| **Gateway (HTTPS)**    | Tailscale MagicDNS     | Zero Trust, Tailscale ACLs    |
+
+    "filesystem__write_file",| **Inspector**          | /inspector path        | Same as gateway               |
+
+    "context7__get-library-docs"| **Markitdown**         | Internal only          | Via Gateway                   |
+
+  ]| **Tailscale Network**  | Mesh VPN               | WireGuard® encrypted          |
+
+}| **TLS Certificates**   | Auto-provisioned       | Let's Encrypt via Tailscale   |
+
+EOF
 
 > 🔒 **Security**: All traffic is encrypted end-to-end. No ports are exposed to the public internet. Access is controlled via Tailscale ACLs.
-docker compose up -d
-```
 
-### 4️⃣ Verify Containers
+# Create the groupdocker compose up -d
 
-```bash
+mcpjungle create group -c claude-tools.json```
+
+
+
+# The group is now available at:### 4️⃣ Verify Containers
+
+# http://localhost:8080/v0/groups/claude-tools/mcp
+
+``````bash
+
 docker ps
-```
 
-You should see:
+### Use Tool Group in MCP Client```
 
-```
-mcp-gateway
-mcp-markitdown
-```
 
----
 
-## 🔐 Network and Security
+Configure your MCP client to use the group-specific endpoint:You should see:
 
-| Component          | Access                     | Notes                              |
-| ------------------ | -------------------------- | ---------------------------------- |
-| **Gateway (6277)** | Local LAN or via Tailscale | Main MCP endpoint                  |
-| **Gateway (6274)** | Local LAN or via Tailscale | Optional Inspector/UI endpoint     |
-| **Markitdown**     | Internal only              | Accessed through the Gateway       |
+
+
+```json```
+
+{mcp-gateway
+
+  "mcpServers": {mcp-markitdown
+
+    "claude-tools": {```
+
+      "command": "npx",
+
+      "args": [---
+
+        "mcp-remote",
+
+        "http://localhost:8080/v0/groups/claude-tools/mcp",## 🔐 Network and Security
+
+        "--allow-http"
+
+      ]| Component          | Access                     | Notes                              |
+
+    }| ------------------ | -------------------------- | ---------------------------------- |
+
+  }| **Gateway (6277)** | Local LAN or via Tailscale | Main MCP endpoint                  |
+
+}| **Gateway (6274)** | Local LAN or via Tailscale | Optional Inspector/UI endpoint     |
+
+```| **Markitdown**     | Internal only              | Accessed through the Gateway       |
+
 | **Tailscale**      | Mesh VPN                   | Used to securely reach Komodo host |
+
+### Manage Tool Groups
 
 > 🧱 Tip: In pfSense or Komodo network policies, restrict inbound access to **Tailscale subnet only** for ports `6274` and `6277`.
 
----
+```bash
+
+# List all tool groups---
+
+mcpjungle list groups
 
 ## 🧩 Connecting Clients
 
-Once the stack is running, point your MCP-compatible client to the Gateway:
+# View group details
 
-### Example – Claude Desktop
+mcpjungle get group claude-toolsOnce the stack is running, point your MCP-compatible client to the Gateway:
+
+
+
+# Delete a group### Example – Claude Desktop
+
+mcpjungle delete group claude-tools
 
 Edit your MCP config file (typically `~/.mcp/config.json`):
 
-```json
-{
+# List tools in a specific group
+
+mcpjungle list tools --group claude-tools```json
+
+```{
+
   "mcpServers": {
-    "gateway": {
+
+---    "gateway": {
+
       "url": "http://<TAILSCALE-IP>:6277"
-    }
+
+## ⚙️ Configuration    }
+
   }
-}
+
+### Environment Variables}
+
 ```
+
+Create a `.env` file in the project directory:
 
 Now Claude can automatically discover tools (like `markitdown`) via the Gateway.
 
----
+```bash
+
+# PostgreSQL Configuration---
+
+POSTGRES_PASSWORD=your_secure_password_here
 
 ## 🧠 Enabling Additional MCP Servers
 
-**See the complete guide:** [docs/ADDING_MCP_SERVERS.md](docs/ADDING_MCP_SERVERS.md)
+# Server Mode
 
-You have **two options** for adding MCP servers:
+# - development: No authentication, ideal for personal use**See the complete guide:** [docs/ADDING_MCP_SERVERS.md](docs/ADDING_MCP_SERVERS.md)
 
-### Option 1: Declarative (compose.yaml) - Recommended for Production
+# - enterprise: Authentication + access control for multi-user
 
-Add servers directly to `compose.yaml` for automatic deployment:
+SERVER_MODE=developmentYou have **two options** for adding MCP servers:
 
-```yaml
-atlassian:
-  image: mcp/atlassian:latest
-  container_name: mcp-atlassian
-  stdin_open: true
-  tty: true
+
+
+# Optional: OpenTelemetry Metrics### Option 1: Declarative (compose.yaml) - Recommended for Production
+
+OTEL_ENABLED=false
+
+OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=homelabAdd servers directly to `compose.yaml` for automatic deployment:
+
+
+
+# Your MCP server credentials (if needed for registration)```yaml
+
+PROXMOX_API_TOKEN=your_proxmox_tokenatlassian:
+
+TAILSCALE_API_KEY=your_tailscale_key  image: mcp/atlassian:latest
+
+CONFLUENCE_API_TOKEN=your_confluence_token  container_name: mcp-atlassian
+
+JIRA_API_TOKEN=your_jira_token  stdin_open: true
+
+```  tty: true
+
   environment:
-    - CONFLUENCE_URL=${CONFLUENCE_URL}
+
+### Enterprise Mode (Multi-User)    - CONFLUENCE_URL=${CONFLUENCE_URL}
+
     - JIRA_URL=${JIRA_URL}
-    # ... more config
+
+For environments with multiple users who need different access levels:    # ... more config
+
   networks: [mcp]
-```
 
-**Benefits:**
+```bash```
+
+# Set enterprise mode in .env
+
+SERVER_MODE=enterprise**Benefits:**
+
 - ✅ Servers start automatically with the stack
-- ✅ Configuration via `.env` file
-- ✅ Version controlled and reproducible
 
-See `compose.yaml` for examples:
-- **Atlassian** (Jira + Confluence) - Requires API tokens
+# Restart the stack- ✅ Configuration via `.env` file
+
+docker compose up -d- ✅ Version controlled and reproducible
+
+
+
+# Initialize admin user (run once after first startup)See `compose.yaml` for examples:
+
+mcpjungle init-server- **Atlassian** (Jira + Confluence) - Requires API tokens
+
 - **OpenAPI** (API spec tools) - No configuration needed
+
+# This creates an admin user and stores the access token in ~/.mcpjungle.conf
 
 ### Option 2: Runtime (MCP Catalog) - Good for Testing
 
-### When Running with Docker Compose (Komodo):
+# Create MCP clients with specific access permissions
+
+mcpjungle create mcp-client cursor-user1 --allow "filesystem,context7"### When Running with Docker Compose (Komodo):
+
+mcpjungle create mcp-client claude-user2 --allow "proxmox,tailscale"
 
 Since the Gateway is running in a container, you need to execute the MCP commands **inside the Gateway container**:
 
-```bash
-# List available servers in the catalog
+# Each client gets a unique access token
+
+# Configure the client to send: Authorization: Bearer <token>```bash
+
+```# List available servers in the catalog
+
 docker exec mcp-gateway docker mcp server catalog
 
-# Enable a server (e.g., OpenAPI for API development)
-docker exec mcp-gateway docker mcp server enable openapi
+**Claude Config with Authentication:**
 
-# Or Atlassian for Jira/Confluence
-docker exec mcp-gateway docker mcp server enable atlassian
+```json# Enable a server (e.g., OpenAPI for API development)
 
-# Configure the server (interactive, if needed)
-docker exec -it mcp-gateway docker mcp server configure atlassian
+{docker exec mcp-gateway docker mcp server enable openapi
 
-# List enabled servers
-docker exec mcp-gateway docker mcp server list
+  "mcpServers": {
 
-# View server status
-docker exec mcp-gateway docker mcp server status openapi
-```
+    "mcpjungle": {# Or Atlassian for Jira/Confluence
 
-### Common Servers to Enable:
+      "command": "npx",docker exec mcp-gateway docker mcp server enable atlassian
 
-```bash
+      "args": [
+
+        "mcp-remote",# Configure the server (interactive, if needed)
+
+        "http://localhost:8080/mcp",docker exec -it mcp-gateway docker mcp server configure atlassian
+
+        "--allow-http",
+
+        "--header", "Authorization: Bearer YOUR_TOKEN_HERE"# List enabled servers
+
+      ]docker exec mcp-gateway docker mcp server list
+
+    }
+
+  }# View server status
+
+}docker exec mcp-gateway docker mcp server status openapi
+
+``````
+
+
+
+---### Common Servers to Enable:
+
+
+
+## 📊 Monitoring & Troubleshooting```bash
+
 # OpenAPI Toolkit - 5 tools (validate specs, generate code/cURL)
-docker exec mcp-gateway docker mcp server enable openapi
 
-# Atlassian (Jira + Confluence) - 37 tools
-docker exec mcp-gateway docker mcp server enable atlassian
+### Health Checksdocker exec mcp-gateway docker mcp server enable openapi
+
+
+
+```bash# Atlassian (Jira + Confluence) - 37 tools
+
+# Check gateway healthdocker exec mcp-gateway docker mcp server enable atlassian
+
+curl http://localhost:8080/health
 
 # Obsidian vault management - 12 tools (requires REST API plugin)
-docker exec mcp-gateway docker mcp server enable obsidian
+
+# Check PostgreSQLdocker exec mcp-gateway docker mcp server enable obsidian
+
+docker compose exec postgres pg_isready -U mcpjungle
 
 # Reddit integration - 6 tools (fetch posts, comments, search)
-docker exec mcp-gateway docker mcp server enable mcp-reddit
 
-# Context7 library documentation - 2 tools (up-to-date docs)
+# View all service statusdocker exec mcp-gateway docker mcp server enable mcp-reddit
+
+docker compose ps
+
+```# Context7 library documentation - 2 tools (up-to-date docs)
+
 docker exec mcp-gateway docker mcp server enable context7
 
-# OpenAPI Schema analysis - 10 tools (spec analysis)
-docker exec mcp-gateway docker mcp server enable openapi-schema
+### View Logs
 
-# Wikipedia knowledge - 11 tools (search, articles, summaries)
+# OpenAPI Schema analysis - 10 tools (spec analysis)
+
+```bashdocker exec mcp-gateway docker mcp server enable openapi-schema
+
+# Gateway logs
+
+docker compose logs -f mcpjungle# Wikipedia knowledge - 11 tools (search, articles, summaries)
+
 docker exec mcp-gateway docker mcp server enable wikipedia-mcp
 
-# Komodo container management - 15 tools (manage THIS Komodo instance!)
+# PostgreSQL logs
+
+docker compose logs -f postgres# Komodo container management - 15 tools (manage THIS Komodo instance!)
+
 docker exec mcp-gateway docker mcp server enable komodo-mcp
 
-# Proxmox hypervisor management - 6 tools (manage VMs, nodes, clusters)
+# All services
+
+docker compose logs -f# Proxmox hypervisor management - 6 tools (manage VMs, nodes, clusters)
+
 docker exec mcp-gateway docker mcp server enable proxmox-mcp
 
-# Tailscale network management - 20+ tools (manage devices, ACLs, status)
-docker exec mcp-gateway docker mcp server enable tailscale-mcp
+# Filter for errors
 
-# GitHub integration
+docker compose logs mcpjungle | grep -i error# Tailscale network management - 20+ tools (manage devices, ACLs, status)
+
+```docker exec mcp-gateway docker mcp server enable tailscale-mcp
+
+
+
+### Common Issues# GitHub integration
+
 docker exec mcp-gateway docker mcp server enable github
 
-# Web browsing capabilities
-docker exec mcp-gateway docker mcp server enable web-browse
+#### STDIO Server Failures
 
-# PostgreSQL database tools
-docker exec mcp-gateway docker mcp server enable postgres
+# Web browsing capabilities
+
+If STDIO servers fail or throw errors, check the MCPJungle logs for `stderr` output:docker exec mcp-gateway docker mcp server enable web-browse
+
+
+
+```bash# PostgreSQL database tools
+
+docker compose logs mcpjungle | grep -i "stderr"docker exec mcp-gateway docker mcp server enable postgres
+
+```
 
 # Filesystem operations
-docker exec mcp-gateway docker mcp server enable filesystem
+
+#### Filesystem Accessdocker exec mcp-gateway docker mcp server enable filesystem
+
 ```
+
+The gateway container has `/srv/mcp/workspace` on your host mounted as `/host` inside the container.
 
 Each new server is added to the same `mcp` network defined in the Compose file.
-The Gateway will automatically discover and route to them.
 
-### From Komodo UI:
+When registering the filesystem MCP server, use `/host` as the path:The Gateway will automatically discover and route to them.
 
-Komodo also provides a terminal for your stack/container. You can:
 
-1. Navigate to your **HL_DockerMCPGateway** stack
-2. Click on the **mcp-gateway** container
-3. Open the **Terminal** tab
-4. Run commands directly: `docker mcp server enable atlassian`
 
----
+```json### From Komodo UI:
 
-## 🧰 Troubleshooting
+{
 
-For common issues and detailed solutions, see the **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)**.
+  "name": "filesystem",Komodo also provides a terminal for your stack/container. You can:
 
-**Quick Fixes**:
+  "transport": "stdio",
+
+  "command": "npx",1. Navigate to your **HL_DockerMCPGateway** stack
+
+  "args": ["-y", "@modelcontextprotocol/server-filesystem", "/host"]2. Click on the **mcp-gateway** container
+
+}3. Open the **Terminal** tab
+
+```4. Run commands directly: `docker mcp server enable atlassian`
+
+
+
+#### Database Connection Issues---
+
+
+
+```bash## 🧰 Troubleshooting
+
+# Check if PostgreSQL is ready
+
+docker compose exec postgres pg_isready -U mcpjungleFor common issues and detailed solutions, see the **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)**.
+
+
+
+# Restart the database**Quick Fixes**:
+
+docker compose restart postgres
 
 | Issue                      | Quick Fix                                             |
-| -------------------------- | ----------------------------------------------------- |
-| Client can't see any tools | Check Tailscale IP and port 6277                      |
-| Conversion fails           | Verify `/srv/mcp/workspace` mapping                   |
+
+# Check database logs| -------------------------- | ----------------------------------------------------- |
+
+docker compose logs postgres| Client can't see any tools | Check Tailscale IP and port 6277                      |
+
+```| Conversion fails           | Verify `/srv/mcp/workspace` mapping                   |
+
 | Markitdown not starting    | Run `docker compose pull`                             |
-| Gateway state missing      | Recreate with `docker volume create mcp-gateway-data` |
+
+### Metrics (if enabled)| Gateway state missing      | Recreate with `docker volume create mcp-gateway-data` |
+
 | High CPU/Memory usage      | Add resource limits in compose.yaml                   |
 
----
+```bash
 
-## 🧱 System Diagram
+# View Prometheus metrics---
 
-```
+curl http://localhost:8080/metrics
+
+```## 🧱 System Diagram
+
+
+
+---```
+
         ┌────────────────────────┐
-        │        Clients         │
+
+## 🔐 Security Considerations        │        Clients         │
+
         │ (Claude, Cursor, etc.) │
-        └──────────┬─────────────┘
-                   │  HTTP/SSE (Tailscale)
-                   ▼
-        ┌────────────────────────┐
-        │     MCP Gateway        │  (port 6277)
-        │ docker/mcp-gateway     │
-        └──────────┬─────────────┘
-                   │ Docker Network (mcp)
-                   ▼
-        ┌────────────────────────┐
-        │   Markitdown Server    │
-        │   mcp/markitdown       │
-        └────────────────────────┘
-```
 
----
+### Development Mode (Default)        └──────────┬─────────────┘
+
+- No authentication required                   │  HTTP/SSE (Tailscale)
+
+- All MCP clients have full access to all servers                   ▼
+
+- Ideal for personal homelab use        ┌────────────────────────┐
+
+- Gateway not exposed to internet        │     MCP Gateway        │  (port 6277)
+
+        │ docker/mcp-gateway     │
+
+### Enterprise Mode        └──────────┬─────────────┘
+
+- Authentication required for all requests                   │ Docker Network (mcp)
+
+- Per-client access control lists                   ▼
+
+- Audit logging enabled        ┌────────────────────────┐
+
+- Recommended for multi-user environments        │   Markitdown Server    │
+
+        │   mcp/markitdown       │
+
+### Docker Security        └────────────────────────┘
+
+- PostgreSQL data in named volume (persistent)```
+
+- Gateway has Docker socket access (to manage STDIO servers)
+
+- Use strong PostgreSQL password---
+
+- Consider running behind reverse proxy with TLS
 
 ## 🧩 Maintenance Commands
 
+---
+
 Stop all services:
 
-```bash
-docker compose down
-```
-
-Update images:
+## 📚 Resources
 
 ```bash
-docker compose pull && docker compose up -d
+
+- [MCPJungle GitHub](https://github.com/mcpjungle/MCPJungle)docker compose down
+
+- [MCPJungle Documentation](https://github.com/mcpjungle/MCPJungle#readme)```
+
+- [Model Context Protocol](https://modelcontextprotocol.io/)
+
+- [MCP Server Registry](https://github.com/modelcontextprotocol/servers)Update images:
+
+- [MCPJungle Discord](https://discord.gg/CapV4Z3krk)
+
+```bash
+
+---docker compose pull && docker compose up -d
+
 ```
+
+## 🛠️ Advanced Usage
 
 View logs:
 
+### Prompts
+
 ```bash
-docker compose logs -f mcp-gateway
+
+MCPJungle supports MCP Prompts (templates for common tasks):docker compose logs -f mcp-gateway
+
 ```
 
----
+```bash
+
+# List prompts from a server---
+
+mcpjungle list prompts --server huggingface
 
 ## 🪪 License
 
-MIT License — See [LICENSE](LICENSE) file for details.
+# Get a specific prompt
 
----
+mcpjungle get prompt "huggingface__Model Details" \MIT License — See [LICENSE](LICENSE) file for details.
 
-## 👤 Author
+  --arg model_id="openai/gpt-oss-120b"
 
-**Matt Markham**  
+```---
+
+
+
+### Custom STDIO Servers## 👤 Author
+
+
+
+If your STDIO servers need additional dependencies beyond `npx` or `uvx`, create a custom Docker image:**Matt Markham**  
+
 Titan America Digital Transformation — Homelab / AI Integration Stack
+
+```dockerfile
+
+FROM mcpjungle/mcpjungle:latest-stdio---
+
+
+
+# Add your custom dependencies## 🤝 Contributing
+
+RUN apk add --no-cache python3 py3-pip
+
+RUN pip3 install your-mcp-server-packageContributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/YOUR-USERNAME/HL_DockerMCPGateway/issues).
+
+
+
+# Use this image in docker-compose.yaml---
+
+```
+
+## ⭐ Support
+
+### Backup & Restore
+
+If you find this project helpful, please give it a ⭐ on GitHub!
+
+```bash
+# Backup PostgreSQL data
+docker compose exec postgres pg_dump -U mcpjungle mcpjungle > backup.sql
+
+# Restore from backup
+docker compose exec -T postgres psql -U mcpjungle mcpjungle < backup.sql
+```
 
 ---
 
 ## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/YOUR-USERNAME/HL_DockerMCPGateway/issues).
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ---
 
-## ⭐ Support
+## 📄 License
 
-If you find this project helpful, please give it a ⭐ on GitHub!
+MIT License - See LICENSE file for details
+
+---
+
+## 🙏 Acknowledgments
+
+- [MCPJungle Team](https://github.com/mcpjungle) for the excellent MCP gateway
+- [Anthropic](https://www.anthropic.com/) for the Model Context Protocol specification
+- All MCP server developers in the community
